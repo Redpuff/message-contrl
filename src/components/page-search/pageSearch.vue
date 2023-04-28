@@ -5,7 +5,7 @@
       <el-row>
         <template v-for="item in searchConfig.formItems" :key="item.prop">
           <el-col :span="8">
-            <el-form-item>
+            <el-form-item :label="item.label">
               <template v-if="item.type === 'input'">
                 <el-input
                   v-model="searchForm[item.prop]"
