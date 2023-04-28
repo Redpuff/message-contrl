@@ -1,79 +1,57 @@
 <template>
   <div class="content">
     <div class="header">
-      <h3 class="title">用户表单</h3>
-      <el-button class="btn" type="primary" @click="handleNewUserClick"
-        >新建用户</el-button
-      >
+      <h3 class="title">{{ contentConfig.header?.title }}</h3>
+      <el-button class="btn" type="primary" @click="handleNewUserClick">{{
+        contentConfig.header?.btnTitle
+      }}</el-button>
     </div>
     <div class="table">
-      <el-table :data="userList" border style="width: 100%">
-        <el-table-column align="center " type="selection" />
-        <el-table-column
-          align="center "
-          type="index"
-          label="序号"
-          width="60px"
-        />
-        <el-table-column
-          align="center "
-          prop="name"
-          label="用户名"
-          width="120px"
-        />
-        <el-table-column
-          align="center "
-          prop="realname"
-          label="真实姓名"
-          width="120px"
-        />
-        <el-table-column
-          align="center "
-          prop="cellphone"
-          label="手机号码"
-          width="120px"
-        />
-        <el-table-column
-          align="center "
-          prop="enable"
-          label="状态"
-          width="80px"
-        >
-          <template #default="{ row: { enable } }"
-            ><el-tag v-if="enable" class="ml-2" type="success">启用</el-tag>
-            <el-tag v-else class="ml-2" type="success">启用</el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column align="center " prop="createAt" label="创建时间">
-          <template #default="{ row: { createAt } }">
-            {{ formatDate(createAt) }}
-          </template>
-        </el-table-column>
-        <el-table-column align="center " prop="updateAt" label="更新时间">
-          <template #default="{ row: { updateAt } }">
-            {{ formatDate(updateAt) }}
-          </template>
-        </el-table-column>
-        <el-table-column align="center " label="操作" width="140px">
-          <template #default="scope">
-            <el-button
-              size="small"
-              link
-              type="primary"
-              :icon="EditPen"
-              @click="editUserClick(scope.row)"
-              >编辑</el-button
+      <el-table :data="pageList" border style="width: 100%">
+        <template v-for="item in contentConfig.propList" :key="item.type">
+          <template v-if="item.type === 'timer'">
+            <el-table-column
+              align="center "
+              :prop="item.prop"
+              :label="item.lable"
             >
-            <el-button
-              size="small"
-              link
-              type="danger"
-              :icon="Delete"
-              @click="handleDeleteClick(scope.row.id)"
-              >删除</el-button
-            >
+              <template #default="scope">
+                {{ formatDate(scope.row[item.prop || '']) }}
+              </template>
+            </el-table-column>
           </template>
-        </el-table-column>
+          <template v-else-if="item.type === 'handel'">
+            <el-table-column align="center " :label="item.lable" width="140px">
+              <template #default="scope">
+                <el-button
+                  size="small"
+                  link
+                  type="primary"
+                  :icon="EditPen"
+                  @click="editUserClick(scope.row)"
+                  >编辑</el-button
+                >
+                <el-button
+                  size="small"
+                  link
+                  type="danger"
+                  :icon="Delete"
+                  @click="handleDeleteClick(scope.row.id)"
+                  >删除</el-button
+                >
+              </template>
+            </el-table-column>
+          </template>
+          <template v-else>
+            <el-table-column
+              :type="item.type"
+              :label="item.lable"
+              align="conter"
+              :width="item.width"
+              :prop="item.prop"
+            />
+          </template>
+        </template>
       </el-table>
     </div>
     <div class="pagination">
@@ -83,7 +61,7 @@
         :page-sizes="[10]"
         :small="true"
         layout="->,total, sizes, prev, pager, next, jumper "
-        :total="totalCount"
+        :total="pageTotalCount"
         @size-change="handleSizeChange"
         @current-change="handleCurrentChange"
       />
@@ -96,47 +74,64 @@ import userSystem from '@/store/main/system/system'
 import { Delete, EditPen } from '@element-plus/icons-vue'
 import { formatDate } from '@/utils/format'
 import { ref } from 'vue'
+interface Iprops {
+  contentConfig: {
+    pageName: string
+    header?: {
+      title?: string
+      btnTitle?: string
+    }
+    propList: Array<{
+      type: string
+      lable: string
+      prop?: string
+      width?: string
+    }>
+  }
+}
+
+const prop = defineProps<Iprops>()
 //创建自定义事件
-const emit = defineEmits(['newUserClick', 'editClick'])
+const emit = defineEmits(['newPageClick', 'editClick'])
 //分页
 const currentPage = ref(1)
 const pageSize = ref(10)
 // 获取仓库
 const userSystemStory = userSystem()
 // 根据页码和页数获取网络请求
-const fetchUserListData = (searchData: any = {}) => {
+const fetchPageListData = (searchData: any = {}) => {
   const size = pageSize.value
   const offset = (currentPage.value - 1) * size
   const queryData = { size, offset, ...searchData }
 
-  userSystemStory.postUserTablesAction(queryData)
+  userSystemStory.postPageListAction(prop.contentConfig.pageName, queryData)
 }
 //删除用户
 const handleDeleteClick = (id: any) => {
-  userSystemStory.deleteUserInfoAction(id)
+  userSystemStory.deletePageByIdAction(prop.contentConfig.pageName, id)
 }
 //编辑用户
 const editUserClick = (userInfo: any) => {
   emit('editClick', userInfo)
 }
-fetchUserListData()
+fetchPageListData()
 //使数据变为响应式
-const { userList, totalCount } = storeToRefs(userSystemStory)
+const { pageList, pageTotalCount } = storeToRefs(userSystemStory)
 
 const handleSizeChange = () => {
-  fetchUserListData()
+  fetchPageListData()
 }
 const handleCurrentChange = () => {
-  fetchUserListData()
+  fetchPageListData()
 }
 
 //创建用户
 const handleNewUserClick = () => {
-  emit('newUserClick')
+  emit('newPageClick')
 }
 
 //将属性方法暴露出去
-defineExpose({ fetchUserListData })
+defineExpose({ fetchPageListData })
 </script>
 <style scoped lang="less">
 .content {
